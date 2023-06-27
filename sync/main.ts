@@ -37,6 +37,7 @@ const determineApplicationMode = (args: Array<string>): EApplicationMode => {
             );
             break;
     }
+    process.exit(0);
 })();
 
 process.on('unhandledRejection', async (reason, promise) => {
@@ -59,7 +60,6 @@ process.on('uncaughtException', async (err, origin) => {
     await mongoClient.close(true).catch();
 });
 
-//TODO
 process.on('SIGINT', async () => {
     console.log('Gracefully shutting down the system');
     await setTimeoutPromise(1000);

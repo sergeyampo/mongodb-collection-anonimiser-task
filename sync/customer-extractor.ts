@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { ICustomer } from '../common/customer.interface';
 import { anonymizeCustomer } from './anonymizer';
-import { clearTimeout } from 'node:timers';
+import { setTimeout, clearTimeout } from 'node:timers';
 import { ReindexCustomerStream } from './reindex-customer-stream';
 import { SyncCustomerStream } from './sync-customer-stream';
 import { IConfig } from './config';
@@ -9,30 +9,21 @@ import { IConfig } from './config';
 async function upsertCustomersWithProgress(
     customerStream: ReindexCustomerStream | SyncCustomerStream,
     customers: Array<ICustomer>,
-    timer: NodeJS.Timeout | null,
+    timerWrapper: { timer: NodeJS.Timeout | null },
     batchSz: number,
     insertTimeoutMs: number,
 ) {
     if (customers.length >= batchSz) {
-        if (timer) clearTimeout(timer);
+        if (timerWrapper.timer) clearTimeout(timerWrapper.timer);
         await customerStream.upsertWithProgress(customers);
         customers.length = 0;
-    } else if (!timer) {
-        timer = setTimeout(() => {
-            handleTimer(customerStream, customers).then(() => {
-                timer = null;
-            });
+    } else if (!timerWrapper.timer) {
+        timerWrapper.timer = setTimeout(async () => {
+            await customerStream.upsertWithProgress(customers);
+            customers.length = 0;
+            timerWrapper.timer = null;
         }, insertTimeoutMs);
     }
-    return timer;
-}
-
-async function handleTimer(
-    customerStream: ReindexCustomerStream | SyncCustomerStream,
-    customers: Array<ICustomer>,
-) {
-    await customerStream.upsertWithProgress(customers);
-    customers.length = 0;
 }
 
 export async function runInFullReindexMode(
@@ -40,7 +31,7 @@ export async function runInFullReindexMode(
     config: IConfig,
 ) {
     const customersToUpsert: Array<ICustomer> = [];
-    let timer: NodeJS.Timeout | null = null;
+    const timerWrapper = { timer: null as NodeJS.Timeout | null };
     const customerStream = new ReindexCustomerStream(
         config.REINDEX_PROGRESS_ID,
         mongoClient,
@@ -55,15 +46,17 @@ export async function runInFullReindexMode(
             );
             customersToUpsert.push(anonymizedCustomer);
 
-            timer = await upsertCustomersWithProgress(
+            await upsertCustomersWithProgress(
                 customerStream,
                 customersToUpsert,
-                timer,
+                timerWrapper,
                 config.INSERTER_OPTIONS.BATCH_SZ,
                 config.INSERTER_OPTIONS.INSERT_TIMEOUT_MS,
             );
         }
-        if (timer) clearTimeout(timer);
+        if (timerWrapper.timer) clearTimeout(timerWrapper.timer);
+        await customerStream.upsertWithProgress(customersToUpsert);
+        customersToUpsert.length = 0;
     } catch (err) {
         throw new Error(`Error while working in full-reindex mode`, {
             cause: err,
@@ -71,11 +64,12 @@ export async function runInFullReindexMode(
     } finally {
         await customerStream.close();
     }
+    return;
 }
 
 export async function runInSyncMode(mongoClient: MongoClient, config: IConfig) {
     const customersToUpsert: Array<ICustomer> = [];
-    let timer: NodeJS.Timer | null = null;
+    const timerWrapper = { timer: null as NodeJS.Timeout | null };
     const customerStream = new SyncCustomerStream(
         config.RESUME_TOKEN_ID,
         mongoClient,
@@ -96,16 +90,19 @@ export async function runInSyncMode(mongoClient: MongoClient, config: IConfig) {
                 config.INSERTER_OPTIONS.HASH_LENGTH,
             );
             customersToUpsert.push(anonymizedCustomer);
-            timer = await upsertCustomersWithProgress(
+            await upsertCustomersWithProgress(
                 customerStream,
                 customersToUpsert,
-                timer,
+                timerWrapper,
                 config.INSERTER_OPTIONS.BATCH_SZ,
                 config.INSERTER_OPTIONS.INSERT_TIMEOUT_MS,
             );
         }
+        if (timerWrapper.timer) clearTimeout(timerWrapper.timer);
+        await customerStream.upsertWithProgress(customersToUpsert);
+        customersToUpsert.length = 0;
     } catch (err) {
-        throw new Error('Error while working in sync mode', {
+        throw new Error(`Error while working in sync mode`, {
             cause: err,
         });
     } finally {

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "sourceMap": true,
     "outDir": "dist",
     "incremental": true,                                 /* Save .tsbuildinfo files to allow for incremental compilation of projects. */
     "target": "es2022",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */

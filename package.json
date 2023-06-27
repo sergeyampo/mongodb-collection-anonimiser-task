@@ -7,6 +7,8 @@
     "prebuild": "node -e \"require('fs').rmSync('./dist', { recursive: true, force: true });\"",
     "build" : "tsc",
     "start:app": "node ./dist/app/main.js",
+    "start:sync": "node ./dist/sync/main.js",
+    "start:reindex": "node ./dist/sync/main.js --full-reindex",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "prettier --check \"**/*.ts\""
   },

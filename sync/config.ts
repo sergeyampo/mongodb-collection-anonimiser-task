@@ -31,7 +31,7 @@ export const config: IConfig = {
     },
     INSERTER_OPTIONS: {
         HASH_LENGTH: 8,
-        INSERT_TIMEOUT_MS: 2000,
+        INSERT_TIMEOUT_MS: 1000,
         BATCH_SZ: 1000,
     },
 };
