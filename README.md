@@ -19,11 +19,21 @@ npm ci
 База данных должна называться не local, admin или config, а mongodb должен быть реплицирован.
 
 ### 4. Openssl
-Система, как правило, должна поддерживать openssl shake128 hash алгоритм, однако убедитесь, что он установлен:
+Система, как правило, должна поддерживать openssl shake256 hash алгоритм, однако убедитесь, что он установлен:
 ```
 openssl list -digest-algorithms | grep -i shake
 ```
 Если в выводе будет SHAKE256, то все исправно.
+
+### 5. Environment variables
+Скопируйте .env.dist файл как .env и заполните строку подключения к mongodb.
+
+Используйте режим retryWrites=false.
+
+Например:
+```
+DB_URI=mongodb://localhost:27017,localhost:27018,localhost:27019/customers?retryWrites=false&replicaSet=myReplicaSet
+```
 
 ## Запуск
 ### app
@@ -38,9 +48,5 @@ npm run:sync
 ```
 #### Режим реиндексации
 ```
-npm run:sync --full-reindex
+npm run:reindex
 ```
-
-# Что нужно сделать, но уже перебор для бесплатного тестового задания
-1. Graceful shutdown.
-2. 

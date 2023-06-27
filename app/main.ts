@@ -1,4 +1,4 @@
-import { Db, MongoClient, ObjectId } from 'mongodb';
+import { Db, MongoClient } from 'mongodb';
 import { faker } from '@faker-js/faker';
 import dotenv from 'dotenv';
 import { setInterval } from 'node:timers/promises';
@@ -91,7 +91,6 @@ process.on('uncaughtException', async (err, origin) => {
     await mongoClient.close(true).catch();
 });
 
-//TODO
 process.on('SIGINT', async () => {
     console.log('Gracefully shutting down the system');
     await setTimeoutPromise(1000);
