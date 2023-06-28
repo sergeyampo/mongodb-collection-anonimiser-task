@@ -1,4 +1,4 @@
-# Technical task. Fundraise up
+# Technical task.
 
 ## Установка зависимостей
 ### 1. Node
